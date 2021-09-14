@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31205.134
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{803FD0C6-D64E-4E16-9DC3-1DAEC859A3D2}") = "ESPRouter", "ESPRouter.vgdbproj", "{C194C650-485D-4D11-9DBC-307E0C83A127}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|VisualGDB = Debug|VisualGDB
+		Release|VisualGDB = Release|VisualGDB
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C194C650-485D-4D11-9DBC-307E0C83A127}.Debug|VisualGDB.ActiveCfg = Debug|VisualGDB
+		{C194C650-485D-4D11-9DBC-307E0C83A127}.Debug|VisualGDB.Build.0 = Debug|VisualGDB
+		{C194C650-485D-4D11-9DBC-307E0C83A127}.Release|VisualGDB.ActiveCfg = Release|VisualGDB
+		{C194C650-485D-4D11-9DBC-307E0C83A127}.Release|VisualGDB.Build.0 = Release|VisualGDB
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {50D87279-0634-4108-B6BB-0648E0585DD6}
+	EndGlobalSection
+EndGlobal
