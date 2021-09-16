@@ -10,10 +10,13 @@
 #include "lwip/apps/sntp_opts.h"
 #include <string.h>
 #include "lib/com/eth/listener.h"
-#include "lib/com/eth/socket.h"
-#include "lib/com/espnow.h"
+#include "lib/com/eth/tcpsocket.h"
+#include "lib/com/eth/udpsocket.h"
+#include "lib/protocol/framedconnection.h"
 #include "driver/gpio.h"
 
+
+FramedConnection con;
 
 extern "C" {
    void app_main();
@@ -37,7 +40,7 @@ void SocketDisconnected(TCPSocket* socket)
 void SocketAccepted(TCPSocket* socket)
 {
 	socket->OnDisconnect.Bind(&SocketDisconnected);
-	
+	con.SetStream(socket);
 	ESP_LOGI("MAIN", "Accepted TCP socket");
 }
 
@@ -53,9 +56,25 @@ void ESPNOWBroadcast(const uint8_t* data, size_t len)
 	}
 }
 
+const char data[] = "World";
+
+void FrameReceived(Frame* frame)
+{
+	
+	ESP_LOGI("Main", "CRC: 0x%04x, Type: %d, PayloadSize: %d, Payload: %s", frame->CRC, (int)frame->Type, frame->PayloadSize, frame->Payload);
+	
+	Frame* f = Frame::AllocateByPayload(sizeof(data));
+	if (f != NULL)
+	{
+		memcpy(f->Payload, data, f->PayloadSize);
+		con.SendFrame(f);
+		Frame::Free(f);
+	}
+}
+
+
 void app_main(void)
 {
-
 	nvs_flash_init();
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK( esp_event_loop_init(event_handler, NULL) );
@@ -79,14 +98,38 @@ void app_main(void)
 	sntp_init();
 
 
-	//vTaskDelay(5000/portTICK_PERIOD_MS);
-
 	TCPListener listener;
 	listener.OnSocketAccepted.Bind(&SocketAccepted);
+	
+	
+	con.FrameReceived.Bind(&FrameReceived);
+	
+	
+	
+	while (1)
+	{
+		
+		
+		
+		
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+	}
+	
+	/*
+	UDPSocket sock;
+	
+	
+	
 
+	return;
+	
+	
+	
 	ESPNOW espnow;
 	espnow.Init();
 	espnow.OnBroadcast.Bind(&ESPNOWBroadcast);
+	
+	
 	
 	
 	gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
@@ -110,6 +153,7 @@ void app_main(void)
 		
 		
 	}
+	*/
 }
 
 
