@@ -72,7 +72,7 @@ void Send()
 
 void FrameReceived(Frame* frame)
 {
-	ESP_LOGI("Main", "CRC: 0x%04x, Type: %d, PayloadSize: %d, Payload: %s", frame->CRC, (int)frame->Type, frame->PayloadSize, frame->Payload);
+	//ESP_LOGI("Main", "CRC: 0x%04x, Type: %d, PayloadSize: %d, Payload: %s", frame->CRC, (int)frame->Type, frame->PayloadSize, frame->Payload);
 	Send();
 }
 
