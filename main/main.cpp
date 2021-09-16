@@ -40,7 +40,7 @@ void SocketDisconnected(TCPSocket* socket)
 void SocketAccepted(TCPSocket* socket)
 {
 	socket->OnDisconnect.Bind(&SocketDisconnected);
-	con.SetStream(socket);
+	con.SetConnection(socket);
 	ESP_LOGI("MAIN", "Accepted TCP socket");
 }
 
@@ -56,13 +56,11 @@ void ESPNOWBroadcast(const uint8_t* data, size_t len)
 	}
 }
 
-const char data[] = "World";
 
-void FrameReceived(Frame* frame)
+
+void Send()
 {
-	
-	ESP_LOGI("Main", "CRC: 0x%04x, Type: %d, PayloadSize: %d, Payload: %s", frame->CRC, (int)frame->Type, frame->PayloadSize, frame->Payload);
-	
+	const char data[] = "World";
 	Frame* f = Frame::AllocateByPayload(sizeof(data));
 	if (f != NULL)
 	{
@@ -70,6 +68,12 @@ void FrameReceived(Frame* frame)
 		con.SendFrame(f);
 		Frame::Free(f);
 	}
+}
+
+void FrameReceived(Frame* frame)
+{
+	ESP_LOGI("Main", "CRC: 0x%04x, Type: %d, PayloadSize: %d, Payload: %s", frame->CRC, (int)frame->Type, frame->PayloadSize, frame->Payload);
+	Send();
 }
 
 
@@ -110,9 +114,10 @@ void app_main(void)
 	{
 		
 		
+		//ESP_LOGI("Main", "xPortGetFreeHeapSize() = %08x", xPortGetFreeHeapSize());
 		
 		
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	}
 	
 	/*
