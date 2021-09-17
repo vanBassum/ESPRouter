@@ -12,11 +12,9 @@
 #include "lib/com/eth/listener.h"
 #include "lib/com/eth/tcpsocket.h"
 #include "lib/com/eth/udpsocket.h"
-#include "lib/protocol/framedconnection.h"
+#include "lib/protocol/client.h"
 #include "driver/gpio.h"
 
-
-FramedConnection con;
 
 extern "C" {
    void app_main();
@@ -37,44 +35,16 @@ void SocketDisconnected(TCPSocket* socket)
 	delete socket;
 }
 
+
+JBV::Client client;
+
 void SocketAccepted(TCPSocket* socket)
 {
 	socket->OnDisconnect.Bind(&SocketDisconnected);
-	con.SetConnection(socket);
+	client.SetConnection(socket);
 	ESP_LOGI("MAIN", "Accepted TCP socket");
 }
 
-void ESPNOWBroadcast(const uint8_t* data, size_t len)
-{
-	if (len >= 1)
-	{
-		if (data[0] == '1')
-			gpio_set_level(GPIO_NUM_2, 1);
-		else
-			gpio_set_level(GPIO_NUM_2, 0);
-		
-	}
-}
-
-
-
-void Send()
-{
-	const char data[] = "World";
-	Frame* f = Frame::AllocateByPayload(sizeof(data));
-	if (f != NULL)
-	{
-		memcpy(f->Payload, data, f->PayloadSize);
-		con.SendFrame(f);
-		Frame::Free(f);
-	}
-}
-
-void FrameReceived(Frame* frame)
-{
-	//ESP_LOGI("Main", "CRC: 0x%04x, Type: %d, PayloadSize: %d, Payload: %s", frame->CRC, (int)frame->Type, frame->PayloadSize, frame->Payload);
-	Send();
-}
 
 
 void app_main(void)
@@ -105,9 +75,7 @@ void app_main(void)
 	TCPListener listener;
 	listener.OnSocketAccepted.Bind(&SocketAccepted);
 	
-	
-	con.FrameReceived.Bind(&FrameReceived);
-	
+
 	
 	
 	while (1)
