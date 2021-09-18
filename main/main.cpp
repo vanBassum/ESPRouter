@@ -21,6 +21,13 @@ extern "C" {
 }
 
 
+void PrintHEX(void* data, size_t size)
+{
+	for (int i = 0; i < size; i++)
+		printf("%02x ", ((uint8_t*)data)[i]);
+	printf("\n");
+}
+
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
@@ -43,6 +50,25 @@ void SocketAccepted(TCPSocket* socket)
 	socket->OnDisconnect.Bind(&SocketDisconnected);
 	client.SetConnection(socket);
 	ESP_LOGI("MAIN", "Accepted TCP socket");
+}
+
+
+void OnMessageReceived(JBV::Client* client, uint8_t src[6], uint8_t* data, uint16_t dataSize)
+{
+	ESP_LOGI("Main", "RX %d", dataSize);
+	
+	PrintHEX(data, dataSize);
+	
+	if (dataSize == 1)
+	{
+		if (data[0] == 0)
+			gpio_set_level(GPIO_NUM_2, 0);
+		if (data[0] == 1)
+			gpio_set_level(GPIO_NUM_2, 1);
+		
+	}
+	
+	
 }
 
 
@@ -74,8 +100,10 @@ void app_main(void)
 
 	TCPListener listener;
 	listener.OnSocketAccepted.Bind(&SocketAccepted);
-	
+	client.OnMessageReceived.Bind(&OnMessageReceived);
 
+	gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
+	gpio_set_level(GPIO_NUM_2, 0);
 	
 	
 	while (1)
