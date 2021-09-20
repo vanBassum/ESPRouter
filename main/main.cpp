@@ -14,12 +14,94 @@
 #include "lib/com/eth/udpsocket.h"
 #include "lib/protocol/client.h"
 #include "driver/gpio.h"
+#include "esp_flash_partitions.h"
+#include "esp_partition.h"
+#include "esp_ota_ops.h"
+
+
 
 
 extern "C" {
    void app_main();
 }
 
+
+
+/*
+#define SECTORSIZE 4096
+const esp_partition_t* partBoot;
+const esp_partition_t* partRunning;
+const esp_partition_t* partUpdate;
+
+size_t erasePointer = 0;
+
+esp_err_t Prep()
+{
+	partBoot = esp_ota_get_boot_partition();
+	partRunning = esp_ota_get_running_partition();
+	partUpdate = esp_ota_get_next_update_partition(NULL);
+
+
+	ESP_LOGI("MAIN", "Boot partition    = '%s'. Address 0x%08x Size 0x%08x Encrypted = %d", partBoot->label, partBoot->address, partBoot->size, partBoot->encrypted);
+	ESP_LOGI("MAIN", "Running partition = '%s'. Address 0x%08x Size 0x%08x Encrypted = %d", partRunning->label, partRunning->address, partRunning->size, partRunning->encrypted);
+	ESP_LOGI("MAIN", "Update partition  = '%s'. Address 0x%08x Size 0x%08x Encrypted = %d", partUpdate->label, partUpdate->address, partUpdate->size, partUpdate->encrypted);
+
+	if (partUpdate == NULL)
+		return ESP_FAIL;
+	
+	erasePointer = 0;
+	return ESP_OK;
+}
+
+esp_err_t WriteOwn(size_t address, void* data, uint32_t size)
+{
+	esp_err_t err = ESP_FAIL;
+	uint32_t max = address + size;
+	while (max > erasePointer)
+	{
+		err = esp_partition_erase_range(partUpdate, erasePointer, SECTORSIZE);
+		if (err == ESP_OK)
+			erasePointer += SECTORSIZE;
+		else
+		{
+			ESP_LOGE("MAIN", "esp_partition_erase_range (%s)", esp_err_to_name(err));
+			return err;
+		}
+	}
+
+	err = esp_partition_write(partUpdate, address, data, size);
+
+	if (err != ESP_OK)
+		ESP_LOGE("MAIN", "esp_partition_write (%s)", esp_err_to_name(err));
+
+	return err;
+}
+
+esp_err_t End()
+{
+	esp_err_t err = esp_ota_set_boot_partition(partUpdate);
+
+	return err;
+}
+
+
+
+enum class Commands : uint8_t
+{
+	LedON = 1,
+	LedOFF = 2,
+	UpdateStart = 3,
+	UpdateData = 4,
+	UpdateEnd = 5,
+};
+
+#pragma pack(1)
+struct CmdPackage
+{
+	Commands cmd;
+	
+};
+*/
 
 void PrintHEX(void* data, size_t size)
 {
@@ -55,22 +137,23 @@ void SocketAccepted(TCPSocket* socket)
 
 void OnMessageReceived(JBV::Client* client, uint8_t src[6], uint8_t* data, uint16_t dataSize)
 {
-	ESP_LOGI("Main", "RX %d", dataSize);
+	ESP_LOGI("Main", "Received CMD '%s'", (char*)data);
 	
-	PrintHEX(data, dataSize);
-	
-	if (dataSize == 1)
+	if (!strcmp((char *)data, "LED 0"))
 	{
-		if (data[0] == 0)
-			gpio_set_level(GPIO_NUM_2, 0);
-		if (data[0] == 1)
-			gpio_set_level(GPIO_NUM_2, 1);
-		
+		gpio_set_level(GPIO_NUM_2, 0);
+		client->SendMessage(src, (uint8_t*)"OKE", 3);
+	}
+	else if (!strcmp((char *)data, "LED 1"))
+	{
+		gpio_set_level(GPIO_NUM_2, 1);
+		client->SendMessage(src, (uint8_t*)"OKE", 3);
 	}
 	
 	
+	
+	
 }
-
 
 
 void app_main(void)
@@ -97,6 +180,8 @@ void app_main(void)
 	sntp_setservername(0, "pool.ntp.org");
 	sntp_init();
 
+	//UDPSocket sock;
+	//sock.OnDataReceived.Bind(&UDPRecieved);
 
 	TCPListener listener;
 	listener.OnSocketAccepted.Bind(&SocketAccepted);
