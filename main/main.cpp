@@ -135,24 +135,27 @@ void SocketAccepted(TCPSocket* socket)
 }
 
 
-void OnMessageReceived(JBV::Client* client, uint8_t src[6], uint8_t* data, uint16_t dataSize)
+ResponseFrame* OnMessageReceived(JBV::Client* client, RequestFrame* rx)
 {
-	ESP_LOGI("Main", "Received CMD '%s'", (char*)data);
+	ResponseFrame* response = NULL; 
+	ESP_LOGI("Main", "Received CMD '%s'", (char*)rx->Data);
 	
-	if (!strcmp((char *)data, "LED 0"))
+	if (!strcmp((char *)rx->Data, "LED 0"))
 	{
 		gpio_set_level(GPIO_NUM_2, 0);
-		client->SendMessage(src, (uint8_t*)"OKE", 3);
+		response = ResponseFrame::ASCII(rx, "OKE");
 	}
-	else if (!strcmp((char *)data, "LED 1"))
+	else if (!strcmp((char *)rx->Data, "LED 1"))
 	{
 		gpio_set_level(GPIO_NUM_2, 1);
-		client->SendMessage(src, (uint8_t*)"OKE", 3);
+		response = ResponseFrame::ASCII(rx, "OKE");
 	}
 	
 	
+	if(response == NULL)
+		response = ResponseFrame::ASCII(rx, "Command not supported");
 	
-	
+	return response;
 }
 
 
@@ -185,7 +188,7 @@ void app_main(void)
 
 	TCPListener listener;
 	listener.OnSocketAccepted.Bind(&SocketAccepted);
-	client.OnMessageReceived.Bind(&OnMessageReceived);
+	client.OnRequestFrame.Bind(&OnMessageReceived);
 
 	gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
 	gpio_set_level(GPIO_NUM_2, 0);
