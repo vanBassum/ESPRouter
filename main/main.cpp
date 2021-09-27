@@ -13,12 +13,17 @@
 #include "lib/com/eth/tcpsocket.h"
 #include "lib/com/eth/udpsocket.h"
 #include "lib/protocol/client.h"
+#include "lib/protocol/discovery.h"
 #include "driver/gpio.h"
 #include "esp_flash_partitions.h"
 #include "esp_partition.h"
 #include "esp_ota_ops.h"
 
+#define SSID "Koole Controls"
+#define PSWD "K@u5tGD!8Ug&X!rc"
 
+
+JBV::Client client;
 
 
 extern "C" {
@@ -26,82 +31,6 @@ extern "C" {
 }
 
 
-
-/*
-#define SECTORSIZE 4096
-const esp_partition_t* partBoot;
-const esp_partition_t* partRunning;
-const esp_partition_t* partUpdate;
-
-size_t erasePointer = 0;
-
-esp_err_t Prep()
-{
-	partBoot = esp_ota_get_boot_partition();
-	partRunning = esp_ota_get_running_partition();
-	partUpdate = esp_ota_get_next_update_partition(NULL);
-
-
-	ESP_LOGI("MAIN", "Boot partition    = '%s'. Address 0x%08x Size 0x%08x Encrypted = %d", partBoot->label, partBoot->address, partBoot->size, partBoot->encrypted);
-	ESP_LOGI("MAIN", "Running partition = '%s'. Address 0x%08x Size 0x%08x Encrypted = %d", partRunning->label, partRunning->address, partRunning->size, partRunning->encrypted);
-	ESP_LOGI("MAIN", "Update partition  = '%s'. Address 0x%08x Size 0x%08x Encrypted = %d", partUpdate->label, partUpdate->address, partUpdate->size, partUpdate->encrypted);
-
-	if (partUpdate == NULL)
-		return ESP_FAIL;
-	
-	erasePointer = 0;
-	return ESP_OK;
-}
-
-esp_err_t WriteOwn(size_t address, void* data, uint32_t size)
-{
-	esp_err_t err = ESP_FAIL;
-	uint32_t max = address + size;
-	while (max > erasePointer)
-	{
-		err = esp_partition_erase_range(partUpdate, erasePointer, SECTORSIZE);
-		if (err == ESP_OK)
-			erasePointer += SECTORSIZE;
-		else
-		{
-			ESP_LOGE("MAIN", "esp_partition_erase_range (%s)", esp_err_to_name(err));
-			return err;
-		}
-	}
-
-	err = esp_partition_write(partUpdate, address, data, size);
-
-	if (err != ESP_OK)
-		ESP_LOGE("MAIN", "esp_partition_write (%s)", esp_err_to_name(err));
-
-	return err;
-}
-
-esp_err_t End()
-{
-	esp_err_t err = esp_ota_set_boot_partition(partUpdate);
-
-	return err;
-}
-
-
-
-enum class Commands : uint8_t
-{
-	LedON = 1,
-	LedOFF = 2,
-	UpdateStart = 3,
-	UpdateData = 4,
-	UpdateEnd = 5,
-};
-
-#pragma pack(1)
-struct CmdPackage
-{
-	Commands cmd;
-	
-};
-*/
 
 void PrintHEX(void* data, size_t size)
 {
@@ -118,21 +47,6 @@ esp_err_t event_handler(void *ctx, system_event_t *event)
 
 
 
-void SocketDisconnected(TCPSocket* socket)
-{
-	ESP_LOGI("MAIN", "TCP Disconnected");
-	delete socket;
-}
-
-
-JBV::Client client;
-
-void SocketAccepted(TCPSocket* socket)
-{
-	socket->OnDisconnect.Bind(&SocketDisconnected);
-	client.SetConnection(socket);
-	ESP_LOGI("MAIN", "Accepted TCP socket");
-}
 
 
 ResponseFrame* OnMessageReceived(JBV::Client* client, RequestFrame* rx)
@@ -170,8 +84,8 @@ void app_main(void)
 	ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
 
 	wifi_config_t sta_config = {};
-	memcpy(sta_config.sta.ssid, "vanBassum", 10);
-	memcpy(sta_config.sta.password, "pedaalemmerzak", 15);
+	memcpy(sta_config.sta.ssid, SSID, strlen(SSID));
+	memcpy(sta_config.sta.password, PSWD, strlen(PSWD));
 	sta_config.sta.bssid_set = false;
 	ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_STA, &sta_config) );
 	ESP_ERROR_CHECK( esp_wifi_start() );
@@ -187,13 +101,17 @@ void app_main(void)
 	//sock.OnDataReceived.Bind(&UDPRecieved);
 
 	TCPListener listener;
-	listener.OnSocketAccepted.Bind(&SocketAccepted);
+	client.AddListener(&listener);
 	client.OnRequestFrame.Bind(&OnMessageReceived);
+	
+	JBV::Discovery disc;
+	JBV::UDPDiscoveryService udpDiscService;
+	disc.AddService(&udpDiscService);
 
 	gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
 	gpio_set_level(GPIO_NUM_2, 0);
 	
-	
+
 	while (1)
 	{
 		
