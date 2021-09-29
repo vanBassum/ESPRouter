@@ -57,17 +57,17 @@ ResponseFrame* OnMessageReceived(JBV::Client* client, RequestFrame* rx)
 	if (!strcmp((char *)rx->Data, "LED 0"))
 	{
 		gpio_set_level(GPIO_NUM_2, 0);
-		response = ResponseFrame::ASCII(rx, "OKE");
+		response = ResponseFrame::ASCII(rx->SrcAddress, rx->FrameID, "OKE");
 	}
 	else if (!strcmp((char *)rx->Data, "LED 1"))
 	{
 		gpio_set_level(GPIO_NUM_2, 1);
-		response = ResponseFrame::ASCII(rx, "OKE");
+		response = ResponseFrame::ASCII(rx->SrcAddress, rx->FrameID, "OKE");
 	}
 	
 	
 	if(response == NULL)
-		response = ResponseFrame::ASCII(rx, "Command not supported");
+		response = ResponseFrame::ASCII(rx->SrcAddress, rx->FrameID, "Command not supported");
 	
 	return response;
 }
@@ -99,7 +99,8 @@ void app_main(void)
 	
 	//Setup client
 	client.SID = SoftwareID::TestApp;
-	esp_read_mac(client.myAddress, ESP_MAC_WIFI_STA);
+	client.myAddress = 0;
+	esp_read_mac((uint8_t*)&client.myAddress, ESP_MAC_WIFI_STA);
 	client.OnRequestFrame.Bind(&OnMessageReceived);
 
 	//Add TCP listener
