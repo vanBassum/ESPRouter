@@ -96,17 +96,22 @@ void app_main(void)
 	sntp_setoperatingmode(SNTP_OPMODE_POLL);
 	sntp_setservername(0, "pool.ntp.org");
 	sntp_init();
+	
+	//Setup client
+	client.SID = SoftwareID::TestApp;
+	esp_read_mac(client.myAddress, ESP_MAC_WIFI_STA);
+	client.OnRequestFrame.Bind(&OnMessageReceived);
 
-	//UDPSocket sock;
-	//sock.OnDataReceived.Bind(&UDPRecieved);
-
+	//Add TCP listener
 	TCPListener listener;
 	client.AddListener(&listener);
-	client.OnRequestFrame.Bind(&OnMessageReceived);
 	
-	JBV::Discovery disc;
-	JBV::UDPDiscoveryService udpDiscService;
-	disc.AddService(&udpDiscService);
+	//Add UDP Broadcast socket
+	UDPSocket sock;
+	sock.Type = IConnection::ConnectionTypes::Broadcast;
+	sock.Connect("255.255.255.255", 51100);
+	client.AddConnection(&sock);
+	
 
 	gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
 	gpio_set_level(GPIO_NUM_2, 0);
