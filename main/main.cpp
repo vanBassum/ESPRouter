@@ -47,29 +47,20 @@ esp_err_t event_handler(void *ctx, system_event_t *event)
 
 
 
-
-
-ResponseFrame* OnMessageReceived(JBV::Client* client, RequestFrame* rx)
+std::vector<uint8_t> OnMessageReceived(JBV::Client* client, std::vector<uint8_t> rawRequest)
 {
-	ResponseFrame* response = NULL; 
-	ESP_LOGI("Main", "Received CMD '%s'", (char*)rx->Data);
+	std::string request(rawRequest.begin(), rawRequest.end()); 
+	std::string response = "Command not supported"; 
+	ESP_LOGI("Main", "Received CMD '%s'", request.c_str());
 	
-	if (!strcmp((char *)rx->Data, "LED 0"))
+	if (request.rfind("Echo", 0) == 0)
 	{
-		gpio_set_level(GPIO_NUM_2, 0);
-		response = ResponseFrame::ASCII(rx->SrcAddress, rx->FrameID, "OKE");
-	}
-	else if (!strcmp((char *)rx->Data, "LED 1"))
-	{
-		gpio_set_level(GPIO_NUM_2, 1);
-		response = ResponseFrame::ASCII(rx->SrcAddress, rx->FrameID, "OKE");
+		response = request.substr(5);
+		
 	}
 	
-	
-	if(response == NULL)
-		response = ResponseFrame::ASCII(rx->SrcAddress, rx->FrameID, "Command not supported");
-	
-	return response;
+
+	return std::vector<uint8_t>(response.begin(), response.end());
 }
 
 
@@ -101,15 +92,14 @@ void app_main(void)
 	client.SID = SoftwareID::TestApp;
 	client.myAddress = 0;
 	esp_read_mac((uint8_t*)&client.myAddress, ESP_MAC_WIFI_STA);
-	client.OnRequestFrame.Bind(&OnMessageReceived);
+	client.HandleRequest.Bind(&OnMessageReceived);
 
 	//Add TCP listener
-	TCPListener listener;
-	client.AddListener(&listener);
+	//TCPListener listener;
+	//client.AddListener(&listener);
 	
 	//Add UDP Broadcast socket
 	UDPSocket sock;
-	sock.Type = IConnection::ConnectionTypes::Broadcast;
 	sock.Connect("255.255.255.255", 51100);
 	client.AddConnection(&sock);
 	
